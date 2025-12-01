@@ -1,0 +1,20 @@
+{
+  "name": "antigravity-jules-orchestration",
+  "version": "1.0.0",
+  "description": "MCP server for Jules API integration with Antigravity",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "keywords": ["mcp", "jules", "antigravity", "orchestration"],
+  "author": "Scarmonit",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "express": "^4.18.2",
+    "zod": "^3.22.4",
+    "dotenv": "^16.3.1"
+  }
+}
