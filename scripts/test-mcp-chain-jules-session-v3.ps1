@@ -1,4 +1,7 @@
-﻿# MCP Tool Chain: Complete Jules Session Lifecycle (v3)
+﻿# Auto-diagnostics: runs quick-check on first use in this shell session
+if (!$env:AUTO_DIAG) { $env:AUTO_DIAG = 1; &"$PSScriptRoot/quick-check.ps1"; if ($LASTEXITCODE -ne 0) { exit 1 } }
+
+# MCP Tool Chain: Complete Jules Session Lifecycle (v3)
 # ✅ 100% MCP Functionality Achieved
 # Chain: list_sources → create_session → approve_plan → monitor → get_activities
 # Enhanced with 32 MCP tools across 5 servers now fully operational
