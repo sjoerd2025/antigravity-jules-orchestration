@@ -5,6 +5,7 @@ import pg from 'pg';
 import axios from 'axios';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
+import { GoogleAuth } from 'google-auth-library';
 import * as metrics from './metrics.js';
 
 const app = express();
@@ -28,12 +29,36 @@ app.get('/api/v1/metrics', async (req, res) => {
   res.end(await metrics.getMetrics());
 });
 
-// Jules API client
+// Initialize Google Auth
+const auth = new GoogleAuth({
+  scopes: 'https://www.googleapis.com/auth/cloud-platform'
+});
+
+// Jules API client with Auth Interceptor
 const julesClient = axios.create({
-  baseURL: 'https://api.jules.google.com/v1',
-  headers: { 
-    'Authorization': `Bearer ${JULES_API_KEY}`,
-    'Content-Type': 'application/json'
+  baseURL: 'https://jules.googleapis.com/v1alpha', // Updated to correct endpoint
+  headers: { 'Content-Type': 'application/json' }
+});
+
+// Add interceptor to inject the latest token
+julesClient.interceptors.request.use(async (config) => {
+  try {
+    // Get the client and headers (automatically uses GOOGLE_APPLICATION_CREDENTIALS_JSON or ADC)
+    const client = await auth.getClient();
+    const headers = await client.getRequestHeaders();
+    
+    // If JULES_API_KEY is still set and no Service Account, fallback (though likely to fail if OAuth required)
+    if (!headers.Authorization && JULES_API_KEY) {
+        config.headers.Authorization = `Bearer ${JULES_API_KEY}`;
+    } else {
+        config.headers.Authorization = headers.Authorization;
+    }
+    
+    console.log(`[Jules Client] Requesting ${config.url} with Auth: ${config.headers.Authorization ? 'Present' : 'Missing'}`);
+    return config;
+  } catch (error) {
+    console.error('[Jules Client] Auth Error:', error.message);
+    return Promise.reject(error);
   }
 });
 
