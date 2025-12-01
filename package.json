@@ -7,7 +7,12 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "mcp:real-execution": "node scripts/mcp-real-execution.js",
+    "mcp:diagnostics": "node scripts/mcp-real-execution.js",
+    "mcp:simulated": "MCP_MODE=SIMULATED node scripts/mcp-real-execution.js",
+    "test:logger": "node scripts/test-logger.js",
+    "test:logger:pretty": "LOG_FORMAT=pretty node scripts/test-logger.js"
   },
   "keywords": [
     "mcp",

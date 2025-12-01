@@ -1,0 +1,58 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: antigravity-jules
+  labels:
+    app: antigravity-jules
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: antigravity-jules
+  template:
+    metadata:
+      labels:
+        app: antigravity-jules
+    spec:
+      containers:
+      - name: antigravity-jules
+        image: 
+        ports:
+        - containerPort: 3323
+        env:
+        - name: PORT
+          value: "3323"
+        - name: NODE_ENV
+          value: "production"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3323
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3323
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: antigravity-jules
+spec:
+  selector:
+    app: antigravity-jules
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3323
+  type: LoadBalancer
