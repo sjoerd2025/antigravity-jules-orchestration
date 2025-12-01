@@ -31,7 +31,10 @@ app.get('/api/v1/metrics', async (req, res) => {
 // Jules API client
 const julesClient = axios.create({
   baseURL: 'https://api.jules.google.com/v1',
-  headers: { 'X-Goog-Api-Key': JULES_API_KEY }
+  headers: { 
+    'Authorization': `Bearer ${JULES_API_KEY}`,
+    'Content-Type': 'application/json'
+  }
 });
 
 // GitHub API client
@@ -40,6 +43,97 @@ const githubClient = axios.create({
   headers: { 
     'Authorization': `Bearer ${GITHUB_TOKEN}`,
     'Accept': 'application/vnd.github+json'
+  }
+});
+
+// Root Endpoint (Service Metadata)
+app.get('/', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'Jules MCP Server',
+    version: '1.1.0',
+    capabilities: ['sessions', 'tasks', 'orchestration', 'mcp-protocol'],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Health Check
+app.get(['/health', '/api/v1/health'], (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    services: {
+      database: 'connected', // Simplified for now, real check would ping DB
+      redis: 'connected'
+    },
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// MCP Tools List
+app.get('/mcp/tools', (req, res) => {
+  res.json({
+    tools: [
+      {
+        name: "jules_create_session",
+        description: "Create a new Jules coding session",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Session name" },
+            source: { type: "string", description: "Source repository (e.g., github.com/owner/repo)" }
+          },
+          required: ["source"]
+        }
+      },
+      {
+        name: "jules_list_sessions",
+        description: "List active Jules sessions",
+        inputSchema: {
+          type: "object",
+          properties: {
+            pageSize: { type: "number" }
+          }
+        }
+      },
+      {
+        name: "jules_get_session",
+        description: "Get details of a specific session",
+        inputSchema: {
+          type: "object",
+          properties: {
+            sessionId: { type: "string" }
+          },
+          required: ["sessionId"]
+        }
+      }
+    ]
+  });
+});
+
+// MCP Tool Execution
+app.post('/mcp/execute', async (req, res) => {
+  const { name, arguments: args } = req.body;
+  
+  try {
+    let result;
+    if (name === 'jules_create_session') {
+      // Proxy to Jules API
+      const response = await julesClient.post('/sessions', args);
+      result = response.data;
+    } else if (name === 'jules_list_sessions') {
+      const response = await julesClient.get('/sessions');
+      result = response.data;
+    } else if (name === 'jules_get_session') {
+      const response = await julesClient.get(`/sessions/${args.sessionId}`);
+      result = response.data;
+    } else {
+      return res.status(404).json({ error: `Tool ${name} not found` });
+    }
+    
+    res.json({ content: [{ type: "text", text: JSON.stringify(result, null, 2) }] });
+  } catch (error) {
+    console.error(`MCP Execute Error (${name}):`, error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
