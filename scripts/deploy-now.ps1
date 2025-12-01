@@ -16,12 +16,7 @@ if (-not $env:GITHUB_TOKEN) {
     exit 1
 }
 
-if (-not $env:JULES_API_KEY) {
-    Write-Error "JULES_API_KEY not set"
-    Write-Host "Get it from: https://jules.google.com/settings"
-    Write-Host "Set with: `$env:JULES_API_KEY='your_api_key'"
-    exit 1
-}
+# JULES_API_KEY check removed as it might be replaced by Service Account JSON in production
 
 Write-Host "✓ Credentials verified" -ForegroundColor Green
 Write-Host ""
@@ -76,64 +71,351 @@ New-Item -ItemType Directory -Path "src", "migrations", "monitoring", ".github\w
 
 # Copy implementation files
 $IndexJs = @"
-// Basic orchestrator implementation
+// orchestrator-api/src/index.js
 import express from 'express';
-import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
-import { createClient } from 'redis';
 import pg from 'pg';
+import axios from 'axios';
+import { WebSocketServer } from 'ws';
+import { createServer } from 'http';
+import { GoogleAuth } from 'google-auth-library';
+import * as metrics from './metrics.js';
 
 const app = express();
 app.use(express.json());
 
+// Config
+const JULES_API_KEY = process.env.JULES_API_KEY;
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const DATABASE_URL = process.env.DATABASE_URL;
 const PORT = process.env.PORT || 3000;
 
-app.get('/api/v1/health', (req, res) => {
-    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+// Initialize database (optional - graceful fallback)
+let db = null;
+if (DATABASE_URL) {
+  db = new pg.Pool({ connectionString: DATABASE_URL });
+  console.log('Database configured');
+}
+
+// Metrics Endpoint
+app.get('/api/v1/metrics', async (req, res) => {
+  res.set('Content-Type', metrics.registerContentType);
+  res.end(await metrics.getMetrics());
 });
 
-app.post('/api/v1/workflows/execute', (req, res) => {
+// Initialize Google Auth
+const auth = new GoogleAuth({
+  scopes: 'https://www.googleapis.com/auth/cloud-platform'
+});
+
+// Jules API client
+const julesClient = axios.create({
+  baseURL: 'https://jules.googleapis.com/v1alpha',
+  headers: { 
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add auth interceptor
+julesClient.interceptors.request.use(async (config) => {
+  try {
+    // Get the client and headers (automatically uses GOOGLE_APPLICATION_CREDENTIALS_JSON or ADC)
+    const client = await auth.getClient();
+    const headers = await client.getRequestHeaders();
+    
+    // If JULES_API_KEY is still set and no Service Account, fallback (though likely to fail if OAuth required)
+    if (!headers.Authorization && JULES_API_KEY) {
+        config.headers.Authorization = `Bearer `${JULES_API_KEY}`;
+    } else {
+        config.headers.Authorization = headers.Authorization;
+    }
+    
+    console.log(`[Jules Client] Requesting `${config.url} with Auth: `${config.headers.Authorization ? 'Present' : 'Missing'}`);
+    return config;
+  } catch (error) {
+    console.error('[Jules Client] Auth Error:', error.message);
+    return Promise.reject(error);
+  }
+});
+
+// GitHub API client
+const githubClient = axios.create({
+  baseURL: 'https://api.github.com',
+  headers: { 
+    'Accept': 'application/vnd.github+json'
+  }
+});
+
+githubClient.interceptors.request.use((config) => {
+  if (GITHUB_TOKEN) {
+    config.headers.Authorization = 'Bearer ' + GITHUB_TOKEN;
+  }
+  return config;
+});
+
+// Root Endpoint (Service Metadata)
+app.get('/', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'Jules MCP Server',
+    version: '1.2.0',
+    capabilities: ['sessions', 'tasks', 'orchestration', 'mcp-protocol'],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Health Check
+app.get(['/health', '/api/v1/health'], async (req, res) => {
+  let dbStatus = 'not_configured';
+  if (db) {
+    try {
+      await db.query('SELECT 1');
+      dbStatus = 'connected';
+    } catch (e) {
+      dbStatus = 'error: ' + e.message;
+    }
+  }
+  
+  res.json({ 
+    status: 'ok',
+    version: '1.2.0',
+    services: {
+      database: dbStatus,
+      julesApi: 'configured',
+      githubApi: GITHUB_TOKEN ? 'configured' : 'not_configured'
+    },
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// MCP Tools List
+app.get('/mcp/tools', (req, res) => {
+  res.json({
+    tools: [
+      {
+        name: "jules_create_session",
+        description: "Create a new Jules coding session",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Session name" },
+            source: { type: "string", description: "Source repository (e.g., github.com/owner/repo)" }
+          },
+          required: ["source"]
+        }
+      },
+      {
+        name: "jules_list_sessions",
+        description: "List active Jules sessions",
+        inputSchema: {
+          type: "object",
+          properties: {
+            pageSize: { type: "number" }
+          }
+        }
+      },
+      {
+        name: "jules_get_session",
+        description: "Get details of a specific session",
+        inputSchema: {
+          type: "object",
+          properties: {
+            sessionId: { type: "string" }
+          },
+          required: ["sessionId"]
+        }
+      }
+    ]
+  });
+});
+
+// MCP Tool Execution
+app.post('/mcp/execute', async (req, res) => {
+  const { name, arguments: args, tool, parameters } = req.body;
+  
+  // Support both MCP formats
+  const toolName = name || tool;
+  const toolArgs = args || parameters || {};
+  
+  if (!toolName) {
+    return res.status(400).json({ error: 'Tool name required (use "name" or "tool" field)' });
+  }
+  
+  try {
+    let result;
+    if (toolName === 'jules_create_session') {
+      const response = await julesClient.post('/sessions', toolArgs);
+      result = response.data;
+    } else if (toolName === 'jules_list_sessions') {
+      const response = await julesClient.get('/sessions');
+      result = response.data;
+    } else if (toolName === 'jules_get_session') {
+      const response = await julesClient.get('/sessions/' + toolArgs.sessionId);
+      result = response.data;
+    } else {
+      return res.status(404).json({ error: 'Tool ' + toolName + ' not found' });
+    }
+    
     res.json({ 
-        workflow_id: 'test-' + Date.now(),
-        status: 'pending',
-        message: 'Workflow queued'
+      success: true,
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      result 
     });
+  } catch (error) {
+    console.error('MCP Execute Error (' + toolName + '):', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: error.response?.data?.error?.message || error.message 
+    });
+  }
 });
 
-app.post('/api/v1/webhooks/github', (req, res) => {
-    console.log('GitHub webhook received:', req.headers['x-github-event']);
-    res.json({ received: true });
-});
-
+// WebSocket Setup
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
+const clients = new Set();
+
 wss.on('connection', (ws) => {
-    console.log('Client connected');
-    ws.send(JSON.stringify({ type: 'connected' }));
+  clients.add(ws);
+  console.log('WebSocket client connected');
+  
+  ws.on('close', () => {
+    clients.delete(ws);
+    console.log('WebSocket client disconnected');
+  });
 });
 
+function broadcast(data) {
+  clients.forEach(client => {
+    if (client.readyState === 1) {
+      client.send(JSON.stringify(data));
+    }
+  });
+}
+
+// Workflow Status Endpoint
+app.get('/api/v1/workflows/:id', async (req, res) => {
+  if (!db) {
+    return res.status(503).json({ error: 'Database not configured' });
+  }
+  
+  try {
+    const workflow = await db.query(
+      'SELECT * FROM workflow_instances WHERE id = $1',
+      [req.params.id]
+    );
+    
+    if (!workflow.rows.length) {
+      return res.status(404).json({ error: 'Workflow not found' });
+    }
+    
+    res.json(workflow.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GitHub Webhook Receiver
+app.post('/api/v1/webhooks/github', async (req, res) => {
+  const event = req.headers['x-github-event'];
+  console.log('Received GitHub webhook: ' + event);
+  
+  broadcast({
+    type: 'github_webhook',
+    event,
+    payload: req.body,
+    timestamp: new Date().toISOString()
+  });
+  
+  res.status(200).json({ received: true });
+});
+
+// Start server
 server.listen(PORT, () => {
-    console.log(`Jules Orchestrator running on port `${PORT}`);
+  console.log('Jules Orchestrator API running on port ' + PORT);
+  console.log('Health check: http://localhost:' + PORT + '/api/v1/health');
+  console.log('MCP Tools: http://localhost:' + PORT + '/mcp/tools');
+  console.log('Jules API Auth: Configured with GoogleAuth');
+  console.log('GitHub Token: ' + (GITHUB_TOKEN ? 'Configured' : 'Not set'));
+  console.log('Database: ' + (DATABASE_URL ? 'Configured' : 'Not set'));
 });
 "@
 $IndexJs | Out-File -FilePath "src\index.js" -Encoding utf8
 
+$MetricsJs = @"
+import promClient from 'prom-client';
+
+const register = new promClient.Register();
+
+// Default metrics
+promClient.collectDefaultMetrics({ register });
+
+export const activeWorkflows = new promClient.Gauge({
+  name: 'workflow_active',
+  help: 'Number of currently active workflows',
+  registers: [register]
+});
+
+export const workflowDuration = new promClient.Histogram({
+  name: 'workflow_duration_seconds',
+  help: 'Workflow execution duration',
+  labelNames: ['template', 'status'],
+  buckets: [5, 10, 30, 60, 300, 600, 1800, 3600],
+  registers: [register]
+});
+
+export const julesTaskCounter = new promClient.Counter({
+  name: 'jules_tasks_total',
+  help: 'Total Jules tasks created',
+  labelNames: ['status'],
+  registers: [register]
+});
+
+export const workflowCounter = new promClient.Counter({
+  name: 'workflow_total',
+  help: 'Total number of workflows executed',
+  labelNames: ['template', 'status'],
+  registers: [register]
+});
+
+export const actionCounter = new promClient.Counter({
+  name: 'workflow_actions_total',
+  help: 'Total workflow actions executed',
+  labelNames: ['action_type', 'success'],
+  registers: [register]
+});
+
+export const webhookCounter = new promClient.Counter({
+  name: 'webhook_events_total',
+  help: 'Total webhook events received',
+  labelNames: ['source', 'event_type'],
+  registers: [register]
+});
+
+export async function getMetrics() {
+  return register.metrics();
+}
+
+export const registerContentType = register.contentType;
+"@
+$MetricsJs | Out-File -FilePath "src\metrics.js" -Encoding utf8
+
 $PackageJson = @"
 {
   "name": "jules-orchestrator",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js"
   },
   "dependencies": {
+    "axios": "^1.6.0",
     "express": "^4.18.2",
     "pg": "^8.11.3",
-    "redis": "^4.6.10",
-    "axios": "^1.6.2",
-    "ws": "^8.16.0"
+    "prom-client": "^15.0.0",
+    "ws": "^8.16.0",
+    "google-auth-library": "^9.0.0"
   }
 }
 "@
@@ -143,7 +425,7 @@ $Dockerfile = @"
 FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --production
 COPY src/ ./src/
 EXPOSE 3000
 CMD ["node", "src/index.js"]
@@ -198,7 +480,7 @@ Write-Host ""
 Write-Host "📤 Pushing to GitHub..."
 
 git add .
-git commit -m "Initial implementation of Jules Orchestrator" 2>$null
+git commit -m "Update Jules Orchestrator to v1.2.0 with Google Auth and fixes" 2>$null
 git push origin main
 
 Write-Host "✓ Code pushed" -ForegroundColor Green
