@@ -74,6 +74,9 @@ This system now includes comprehensive MCP tool discovery and orchestration capa
 ## Contents
 
 *   **[ARCHITECTURE.md](ARCHITECTURE.md)**: Detailed overview of the system design, event triggers, and integration points.
+*   **[docs/orchestration/](docs/orchestration/)**: MCP Tool Discovery & Orchestration documentation.
+    *   `MCP_TOOL_DISCOVERY.md`: Comprehensive guide for tool discovery and chaining.
+    *   `ORCHESTRATION_PROMPT.md`: Prompt template for AI assistant orchestration.
 *   **[templates/](templates/)**: JSON definitions for concrete workflows.
     *   `dependency-update.json`: Weekly automated dependency maintenance.
     *   `bugfix-from-issue.json`: Triggered by `bug-auto` label, requires approval.
@@ -141,3 +144,40 @@ MIT License
 ## Contact
 - Email: Scarmonit@gmail.com
 - GitHub: [@Scarmonit](https://github.com/Scarmonit)
+
+## 🚀 AI Model Integrations
+
+### Alibaba Cloud Lingma + Qwen
+
+**Status**: ✅ Integrated (December 2025)
+
+The orchestration now includes **Alibaba Cloud Lingma AI Coding Assistant** and **Qwen LLM models** for enhanced development capabilities.
+
+#### Key Features:
+- **IDE-Native Coding**: Lingma VS Code extension (1.9M+ installs, 3.9/5 rating)
+- **Free Tier**: 1,000,000 AI tokens via Model Studio
+- **Models**: Qwen3-Max, Qwen-Plus, Qwen-MT-Plus, and more
+- **ISO 42001 Certified**: Enterprise-grade security
+
+#### Integration Tiers:
+1. **Tier 1 - IDE**: Real-time code completion, Ask/Edit/Agent modes
+2. **Tier 2 - API**: Custom orchestration via Qwen API endpoints
+3. **Tier 3 - Cloud**: ECS instances, Object Storage, Cloud Shell
+
+#### Resources:
+- 📄 [Full Integration Guide](ALIBABA_LINGMA_INTEGRATION.md)
+- 🔗 [Lingma Product Page](https://www.alibabacloud.com/en/product/lingma)
+- 🎯 [Model Studio Console](https://modelstudio.console.alibabacloud.com/)
+- 📦 [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Alibaba-Cloud.tongyi-lingma)
+
+### Multi-Model Strategy
+
+The orchestration uses a hybrid approach:
+- **Lingma/Qwen**: IDE-native completion, multi-file edits, code generation
+- **Claude**: Complex reasoning, architecture design, code review
+- **GPT**: Natural language tasks, documentation, creative problem solving
+- **Jules**: Repository modifications, automated coding sessions
+
+This multi-model approach maximizes strengths while minimizing costs and latency.
+
+---
