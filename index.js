@@ -15,7 +15,7 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN || null;
 const VERSION = '2.3.0';
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '1mb', strict: true }));
 
 // Circuit Breaker for Jules API
 const circuitBreaker = {
