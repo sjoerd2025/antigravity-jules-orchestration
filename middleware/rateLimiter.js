@@ -93,7 +93,13 @@ export class RedisRateLimiter {
       });
 
       this.client.on('error', (err) => {
-        console.error('[RateLimiter] Redis error:', err.message);
+        console.error('[RateLimiter] Redis error:', {
+          message: err.message,
+          code: err.code,
+          stack: err.stack,
+          errno: err.errno,
+          syscall: err.syscall
+        });
         this.isConnected = false;
         this.metrics.redisErrors++;
       });
@@ -118,8 +124,27 @@ export class RedisRateLimiter {
       this.isConnected = true;
       return true;
     } catch (error) {
-      console.error('[RateLimiter] Initialization failed:', error.message);
-      console.log('[RateLimiter] Running in failover mode');
+      // Track initialization failure in metrics
+      this.metrics.initializationFailed = true;
+      this.metrics.initializationError = error.message;
+
+      // Log with FULL error details including stack trace
+      console.error('[RateLimiter] CRITICAL: Initialization failed:', {
+        error: error.message,
+        stack: error.stack,
+        code: error.code,
+        redisUrl: this.config.redis.url.replace(/\/\/.*@/, '//***@'), // Mask credentials
+        failoverStrategy: this.config.failover.strategy
+      });
+
+      // Warn loudly about failover mode
+      console.warn('[RateLimiter] WARNING: Running in failover mode - rate limiting may be degraded');
+
+      // Alert if fail-closed strategy requires Redis
+      if (this.config.failover.strategy === 'fail-closed') {
+        console.error('[RateLimiter] fail-closed strategy active - local cache will be used for rate limiting');
+      }
+
       return false;
     }
   }
@@ -377,30 +402,64 @@ export class RedisRateLimiter {
           this.tierCache.set(apiKey, tier);
           return tier;
         }
+        // Tier not found in Redis - this is expected for new/unknown users
+        // No error, just fall through to default
       } catch (error) {
-        console.error('[RateLimiter] Failed to get tier:', error.message);
+        // CRITICAL: Track Redis errors during tier lookup
+        // This could cause paying customers to be rate-limited as free users
+        this.metrics.redisErrors++;
+        this.metrics.tierLookupFailures = (this.metrics.tierLookupFailures || 0) + 1;
+
+        console.error('[RateLimiter] CRITICAL: Failed to get tier from Redis - user may be downgraded:', {
+          error: error.message,
+          stack: error.stack,
+          apiKeyHash: this.hashKey(apiKey),
+          isConnected: this.isConnected
+        });
       }
     }
 
-    return 'free'; // Default tier
+    return 'free'; // Default tier - only safe for genuinely unknown users
   }
 
   /**
    * Set tier for API key
+   * @returns {Object} Status object with persisted, cached, and reason fields
    */
   async setTier(apiKey, tier) {
+    // Validate tier exists in config
+    if (!this.config.tiers[tier]) {
+      const validTiers = Object.keys(this.config.tiers).join(', ');
+      console.error(`[RateLimiter] Invalid tier: ${tier}. Valid tiers: ${validTiers}`);
+      return { persisted: false, cached: false, reason: 'invalid_tier', error: `Invalid tier: ${tier}` };
+    }
+
+    // Always update local cache for immediate effect
     this.tierCache.set(apiKey, tier);
 
-    if (this.isConnected && this.client) {
-      try {
-        await this.client.set(`rl:tier:${this.hashKey(apiKey)}`, tier, { EX: 86400 * 30 });
-        return true;
-      } catch (error) {
-        console.error('[RateLimiter] Failed to set tier:', error.message);
-        return false;
-      }
+    if (!this.isConnected || !this.client) {
+      console.warn('[RateLimiter] Cannot persist tier to Redis - not connected', {
+        apiKeyHash: this.hashKey(apiKey),
+        tier,
+        isConnected: this.isConnected
+      });
+      return { persisted: false, cached: true, reason: 'redis_not_connected' };
     }
-    return false;
+
+    try {
+      await this.client.set(`rl:tier:${this.hashKey(apiKey)}`, tier, { EX: 86400 * 30 });
+      return { persisted: true, cached: true };
+    } catch (error) {
+      this.metrics.redisErrors++;
+      console.error('[RateLimiter] Failed to persist tier to Redis:', {
+        error: error.message,
+        stack: error.stack,
+        apiKeyHash: this.hashKey(apiKey),
+        tier
+      });
+      // Tier is in cache but not persisted - warn the caller
+      return { persisted: false, cached: true, reason: 'redis_error', error: error.message };
+    }
   }
 
   /**
