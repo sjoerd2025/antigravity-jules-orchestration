@@ -1,6 +1,7 @@
 // dashboard/src/App.jsx
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import { RateLimiterMetrics } from './RateLimiterMetrics';
 
 function App() {
   const [workflows, setWorkflows] = useState([]);
@@ -97,6 +98,7 @@ function App() {
       </header>
 
       <main>
+        <RateLimiterMetrics />
         <section className="quick-actions">
           <h2>Quick Actions</h2>
           <div className="action-buttons">
