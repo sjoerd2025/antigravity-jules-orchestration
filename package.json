@@ -1,6 +1,6 @@
 {
   "name": "antigravity-jules-orchestration",
-  "version": "1.5.0",
+  "version": "2.3.0",
   "description": "MCP server for Jules API integration with Antigravity",
   "main": "index.js",
   "type": "module",

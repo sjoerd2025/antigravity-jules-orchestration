@@ -1,8 +1,10 @@
 # Claude Code Project Context
 
+**Version: 2.3.0** | [CHANGELOG](./CHANGELOG.md)
+
 ## Project Overview
 
-**antigravity-jules-orchestration** is an MCP (Model Context Protocol) server that integrates Google's Jules API with Antigravity for autonomous AI development workflows. It enables hands-free coding sessions, automated PR creation, and orchestrated development tasks.
+**antigravity-jules-orchestration** is an MCP (Model Context Protocol) server that integrates Google's Jules API with Antigravity for autonomous AI development workflows. It provides 23 MCP tools including Ollama/RAG integration, hands-free coding sessions, automated PR creation, and orchestrated development tasks.
 
 ## Architecture
 
@@ -54,6 +56,10 @@ cd orchestrator-api && npm start
 
 # Build dashboard
 cd dashboard && npm run build
+
+# Run tests (287 total)
+npm test                          # Backend tests (270 tests, node:test)
+cd dashboard && npm test          # Dashboard tests (17 tests, vitest)
 ```
 
 ## Environment Variables
