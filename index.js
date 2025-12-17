@@ -73,62 +73,6 @@ app.use('/mcp/', (req, res, next) => {
   next();
 });
 
-// Circuit Breaker for Jules API
-const circuitBreaker = {
-  failures: 0,
-  lastFailure: null,
-  threshold: 5,        // Trip after 5 consecutive failures
-  resetTimeout: 60000, // Reset after 1 minute
-  isOpen() {
-    if (this.failures >= this.threshold) {
-      const timeSinceFailure = Date.now() - this.lastFailure;
-      if (timeSinceFailure < this.resetTimeout) {
-        return true; // Circuit is open, reject requests
-      }
-      this.failures = 0; // Reset after timeout
-    }
-    return false;
-  },
-  recordSuccess() {
-    this.failures = 0;
-  },
-  recordFailure() {
-    this.failures++;
-    this.lastFailure = Date.now();
-  }
-};
-
-// Rate limiting - Simple in-memory implementation
-const rateLimitStore = new Map();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX = 100; // 100 requests per minute
-
-app.use('/mcp/', (req, res, next) => {
-  const ip = req.ip || req.connection.remoteAddress;
-  const now = Date.now();
-  const windowStart = now - RATE_LIMIT_WINDOW;
-
-  if (!rateLimitStore.has(ip)) {
-    rateLimitStore.set(ip, []);
-  }
-
-  const requests = rateLimitStore.get(ip).filter(time => time > windowStart);
-  requests.push(now);
-  rateLimitStore.set(ip, requests);
-
-  if (requests.length > RATE_LIMIT_MAX) {
-    return res.status(429).json({
-      error: 'Too many requests',
-      retryAfter: Math.ceil(RATE_LIMIT_WINDOW / 1000),
-      hint: 'Please wait before making more requests'
-    });
-  }
-
-  res.setHeader('X-RateLimit-Limit', RATE_LIMIT_MAX);
-  res.setHeader('X-RateLimit-Remaining', RATE_LIMIT_MAX - requests.length);
-  next();
-});
-
 // Initialize modules
 let batchProcessor = null;
 let sessionMonitor = null;
