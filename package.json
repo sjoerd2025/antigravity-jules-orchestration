@@ -10,7 +10,12 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
-    "test:load": "node tests/load/rate-limiter-load-test.js"
+    "test:load": "node tests/load/rate-limiter-load-test.js",
+    "mcp:real-execution": "node scripts/mcp-real-execution.js",
+    "mcp:diagnostics": "node scripts/mcp-real-execution.js",
+    "mcp:simulated": "MCP_MODE=SIMULATED node scripts/mcp-real-execution.js",
+    "test:logger": "node scripts/test-logger.js",
+    "test:logger:pretty": "LOG_FORMAT=pretty node scripts/test-logger.js"
   },
   "keywords": [
     "mcp",

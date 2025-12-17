@@ -33,6 +33,33 @@ Autonomous AI orchestration architecture combining **Google Antigravity** with t
 
 ## Workflow Architecture
 
+### MCP Tool Chain Orchestration 🆕
+**Status:** ✅ Production Ready | **Tools:** 35+ across 5 MCP servers | **Chains:** 5 executable workflows
+
+This system now includes comprehensive MCP tool discovery and orchestration capabilities:
+
+- **35+ MCP Tools Cataloged**: Across 5 connected servers (Jules, Scarmonit ARC, LLM Framework, DevOps, Evolution)
+- **5 Tool Chains Designed**: Complete workflows from diagnostics to deployment
+- **Automated Execution**: PowerShell scripts for repeatable chain testing
+- **Production-Ready Artifacts**: Generated Terraform, Docker, K8s, Prometheus configs
+
+**Quick Start:**
+```powershell
+# Run system diagnostics
+.\scripts\test-mcp-chain-system-diagnostics.ps1
+
+# Generate DevOps artifacts
+.\scripts\test-mcp-chain-devops-integration.ps1
+
+# Run all chains
+.\scripts\test-mcp-orchestration.ps1
+```
+
+**Documentation:**
+- 📚 [MCP Tool Chain Architecture](docs/MCP_TOOL_CHAINS.md) - Complete guide (500+ lines)
+- 📊 [Orchestration Report](docs/MCP_ORCHESTRATION_REPORT.md) - Execution results
+- 🚀 [Quick Reference](docs/MCP_QUICK_REFERENCE.md) - Commands and patterns
+
 ### Autonomous Development Loop
 1. **Task Initiation**: User provides high-level task in Antigravity
 2. **Planning Phase**: Antigravity agent creates implementation plan with task groups

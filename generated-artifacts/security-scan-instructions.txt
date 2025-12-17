@@ -1,0 +1,18 @@
+﻿# Dependency Security Scan Instructions
+
+## NPM Audit
+npm audit --audit-level=moderate --json > audit-report.json
+
+## Snyk (if available)
+snyk test --json > snyk-report.json
+
+## Generate SBOM
+npm sbom --output-format cyclonedx --output-file sbom.json
+
+## Trivy Filesystem Scan
+trivy fs --security-checks vuln,config . > trivy-report.txt
+
+## Review Results
+# Critical vulnerabilities: Block deployment
+# High vulnerabilities: Require review
+# Medium/Low: Track for future updates
