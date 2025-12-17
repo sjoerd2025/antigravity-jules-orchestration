@@ -235,7 +235,6 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
 const clients = new Set();
-const HEARTBEAT_INTERVAL = 30000;
 
 // WebSocket heartbeat to detect dead connections and prevent memory leaks
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
