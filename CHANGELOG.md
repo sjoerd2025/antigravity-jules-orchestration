@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2024-12-19
+
+### Added
+- **Semantic Memory Integration**: 8 new MCP tools for persistent AI memory
+  - `memory_recall_context` - Recall relevant memories for a task
+  - `memory_store` - Store a memory manually
+  - `memory_search` - Search memories by query
+  - `memory_related` - Get memories related to a specific memory
+  - `memory_reinforce` - Reinforce successful patterns
+  - `memory_forget` - Apply decay to old memories
+  - `memory_health` - Check memory service health
+  - `memory_maintenance_schedule` - Get maintenance schedule
+- **Memory Integration Tests**: 60 comprehensive tests covering SSRF protection, error sanitization, input validation, all MCP tools, and network failure handling
+- New `lib/memory-client.js` with security-hardened memory API client
+
+### Security
+- SSRF protection with domain whitelist (memory.scarmonit.com, semantic-memory-mcp.onrender.com, localhost)
+- IP address blocking to prevent whitelist bypass
+- HTTPS enforcement (except localhost for development)
+- Error message sanitization to prevent information disclosure
+- Input validation with safe defaults for all memory operations
+
+## [2.6.0] - 2024-12-18
+
+### Added
+- **Render Auto-Fix Integration**: Automatically detect and fix build failures on Jules PRs
+- **Suggested Tasks Scanner**: Proactively scan codebases for TODO/FIXME/HACK comments
+- 15 new MCP tools: Render integration (12) + Suggested Tasks (3)
+- Secure credential storage with AES-256-GCM encryption
+- Build log analysis with intelligent error pattern recognition
+- Webhook receiver at `/webhooks/render` for deployment events
+- New `lib/encryption.js`, `lib/render-client.js`, `lib/render-autofix.js`, `lib/suggested-tasks.js`
+- `SECURITY.md` documentation
+
+## [2.5.1] - 2024-12-17
+
+### Added
+- Temporal Agent Integration for scheduled Jules sessions
+- New `lib/temporal-integration.js` helper functions
+- `scheduled-jules-session.json` template
+
+## [2.5.0] - 2024-12-17
+
+### Added
+- 15 new MCP tools: Templates, cloning, search, PR integration, queue, analytics
+- Session Templates for reusable configurations
+- Priority Queue with priority-based processing
+- Session Cloning and Search capabilities
+- PR Integration: Merge PRs, add comments directly
+- Batch Retry for failed sessions
+- Analytics Dashboard with success rates and trends
+- New slash commands: `/templates`, `/queue`, `/analytics`
+
 ## [2.3.0] - 2024-12-17
 
 ### Added
