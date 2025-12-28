@@ -237,17 +237,27 @@ app.use('/mcp/', (req, res, next) => {
 let batchProcessor = null;
 let sessionMonitor = null;
 
-// CORS - Secure whitelist configuration
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173,https://antigravity-jules-orchestration.onrender.com').split(',');
+// CORS - Secure whitelist configuration (no wildcard fallback)
+const DEFAULT_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://antigravity-jules-orchestration.onrender.com',
+  'https://scarmonit.com',
+  'https://agent.scarmonit.com'
+];
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : DEFAULT_ORIGINS;
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (ALLOWED_ORIGINS.includes(origin) || !origin) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
+  // Only set CORS headers if origin is explicitly allowed (no wildcard fallback)
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
   }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Key, X-Request-ID, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
