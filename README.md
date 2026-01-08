@@ -1,5 +1,7 @@
 # Antigravity-Jules Orchestration
 
+**Version: 2.6.2** | [CHANGELOG](./CHANGELOG.md)
+
 ## Overview
 Autonomous AI orchestration architecture combining **Google Antigravity** with the **Jules API** for hands-free development workflows. This system leverages the Model Context Protocol (MCP) for seamless agent coordination.
 
@@ -21,217 +23,138 @@ Autonomous AI orchestration architecture combining **Google Antigravity** with t
 
 ### 3. MCP Integration Layer
 - **Custom MCP Server**: Node.js-based server using Streamable HTTP transport
-- **Type-safe Validation**: Zod schemas for runtime validation of all inputs
+- **Type-safe Validation**: Joi schemas for runtime validation of all inputs
 - **Stateless Architecture**: Optimized for compatibility with multiple MCP clients
-- **Tools Available**:
-  - `jules_list_sources` - List connected GitHub sources
-  - `jules_create_session` - Create new coding sessions
-  - `jules_list_sessions` - List all sessions
-  - `jules_approve_plan` - Approve execution plans
-  - `jules_send_message` - Send messages to active agents
-  - `jules_list_activities` - Monitor session activities
+- **65 MCP Tools Available** including:
+  - Jules Core API (7 tools)
+  - Session Management (5 tools)
+  - Session Templates (4 tools)
+  - Session Cloning & Search (2 tools)
+  - PR Integration (3 tools)
+  - Session Queue (4 tools)
+  - Batch Processing (7 tools)
+  - Analytics (1 tool)
+  - Monitoring & Cache (4 tools)
+  - Ollama Local LLM (4 tools)
+  - RAG (4 tools)
+  - Semantic Memory (8 tools)
+  - Render Integration (12 tools)
+  - Suggested Tasks (3 tools)
 
-## v2.0.0 Features
+## v2.6.x Features
+
+### Render Auto-Fix Integration (v2.6.0)
+- Automatically detect and fix build failures on Jules PRs
+- Webhook receiver for Render deployment events
+- Build log analysis with intelligent error pattern recognition
+- Secure credential storage with AES-256-GCM encryption
+
+### Suggested Tasks Scanner (v2.6.0)
+- Scan codebases for TODO/FIXME/HACK comments
+- Priority-based task ranking
+- Create Jules sessions to fix suggested tasks
+
+### Semantic Memory Integration (v2.6.1)
+- 8 MCP tools for persistent AI memory
+- SSRF protection with domain whitelist
+- Error message sanitization
 
 ### GitHub Issue Integration
-- **`jules_create_from_issue`**: Creates a Jules session from a GitHub issue.
-  - **Endpoint**: `POST /mcp/execute`
-  - **Body**:
-    ```json
-    {
-      "tool": "jules_create_from_issue",
-      "parameters": {
-        "owner": "your-github-org",
-        "repo": "your-repo-name",
-        "issueNumber": 123
-      }
-    }
-    ```
-- **`jules_batch_from_labels`**: Creates Jules sessions from all issues with a given set of labels.
-  - **Endpoint**: `POST /mcp/execute`
-  - **Body**:
-    ```json
-    {
-      "tool": "jules_batch_from_labels",
-      "parameters": {
-        "owner": "your-github-org",
-        "repo": "your-repo-name",
-        "label": "bug"
-      }
-    }
-    ```
+- jules_create_from_issue: Creates a Jules session from a GitHub issue
+- jules_batch_from_labels: Creates Jules sessions from all issues with a given label
 
 ### Batch Processing
-- **`jules_batch_create`**: Creates a batch of Jules sessions from a list of tasks.
-  - **Endpoint**: `POST /mcp/execute`
-  - **Body**:
-    ```json
-    {
-      "tool": "jules_batch_create",
-      "parameters": {
-        "tasks": [
-          {
-            "prompt": "Fix a bug",
-            "source": "sources/github/your-github-org/your-repo-name"
-          },
-          {
-            "prompt": "Implement a feature",
-            "source": "sources/github/your-github-org/your-repo-name"
-          }
-        ]
-      }
-    }
-    ```
-- **`jules_batch_status`**: Checks the status of a batch of Jules sessions.
-  - **Endpoint**: `POST /mcp/execute`
-  - **Body**:
-    ```json
-    {
-      "tool": "jules_batch_status",
-      "parameters": {
-        "batchId": "your-batch-id"
-      }
-    }
-    ```
-- **`jules_batch_approve_all`**: Approves all sessions in a batch.
-  - **Endpoint**: `POST /mcp/execute`
-  - **Body**:
-    ```json
-    {
-      "tool": "jules_batch_approve_all",
-      "parameters": {
-        "batchId": "your-batch-id"
-      }
-    }
-    ```
+- jules_batch_create: Creates a batch of Jules sessions from a list of tasks
+- jules_batch_status: Checks the status of a batch of Jules sessions
+- jules_batch_approve_all: Approves all sessions in a batch
+- jules_batch_retry_failed: Retry all failed sessions in a batch
+
+### Session Templates (v2.5.0)
+- Save and reuse session configurations
+- Create sessions from templates with overrides
+
+### Priority Queue (v2.5.0)
+- Queue sessions with priority-based processing
+- Automatic failure handling
+
+### PR Integration (v2.5.0)
+- Merge PRs directly from Jules sessions
+- Add comments to PRs
 
 ### Session Monitoring
-- **`jules_monitor_all`**: Monitors all active Jules sessions.
-  - **Endpoint**: `GET /api/sessions/active`
-- **`jules_session_timeline`**: Gets a timeline of events for a Jules session.
-  - **Endpoint**: `GET /api/sessions/:id/timeline`
+- jules_monitor_all: Monitors all active Jules sessions
+- jules_session_timeline: Gets a timeline of events for a Jules session
 
 ## Workflow Architecture
 
-### MCP Tool Chain Orchestration 🆕
-**Status:** ✅ Production Ready | **Tools:** 35+ across 5 MCP servers | **Chains:** 5 executable workflows
+### MCP Tool Chain Orchestration
+**Status:** Production Ready | **Tools:** 65 MCP tools | **Chains:** 5 executable workflows
 
-This system now includes comprehensive MCP tool discovery and orchestration capabilities:
-
-- **35+ MCP Tools Cataloged**: Across 5 connected servers (Jules, Scarmonit ARC, LLM Framework, DevOps, Evolution)
+- **65 MCP Tools Cataloged**: Jules, Ollama, RAG, Semantic Memory, Render integration
 - **5 Tool Chains Designed**: Complete workflows from diagnostics to deployment
 - **Automated Execution**: PowerShell scripts for repeatable chain testing
 - **Production-Ready Artifacts**: Generated Terraform, Docker, K8s, Prometheus configs
 
-**Quick Start:**
-```powershell
-# Run system diagnostics
-.\scripts\test-mcp-chain-system-diagnostics.ps1
-
-# Generate DevOps artifacts
-.\scripts\test-mcp-chain-devops-integration.ps1
-
-# Run all chains
-.\scripts\test-mcp-orchestration.ps1
-```
-
 **Documentation:**
-- 📚 [MCP Tool Chain Architecture](docs/MCP_TOOL_CHAINS.md) - Complete guide (500+ lines)
-- 📊 [Orchestration Report](docs/MCP_ORCHESTRATION_REPORT.md) - Execution results
-- 🚀 [Quick Reference](docs/MCP_QUICK_REFERENCE.md) - Commands and patterns
+- [MCP Tool Chain Architecture](docs/reference/MCP_TOOL_CHAINS.md) - Complete guide
+- [Orchestration Report](docs/reports/MCP_ORCHESTRATION_REPORT.md) - Execution results
+- [Quick Reference](docs/MCP_QUICK_REFERENCE.md) - Commands and patterns
 
 ### Autonomous Development Loop
 1. **Task Initiation**: User provides high-level task in Antigravity
 2. **Planning Phase**: Antigravity agent creates implementation plan with task groups
 3. **Jules Session Creation**: MCP server creates Jules coding session with appropriate source
-4. **Parallel Execution**: 
-   - Antigravity manages browser automation and UI interactions
-   - Jules handles code generation and repository modifications
+4. **Parallel Execution**: Antigravity manages browser automation; Jules handles code generation
 5. **Progress Monitoring**: Real-time activity tracking across both systems
 6. **Approval Gates**: Implementation plans reviewed before execution
 7. **Completion**: Changes merged, tests executed, documentation updated
-
-## Contents
-
-*   **[ARCHITECTURE.md](ARCHITECTURE.md)**: Detailed overview of the system design, event triggers, and integration points.
-*   **[docs/orchestration/](docs/orchestration/)**: MCP Tool Discovery & Orchestration documentation.
-    *   `MCP_TOOL_DISCOVERY.md`: Comprehensive guide for tool discovery and chaining.
-    *   `ORCHESTRATION_PROMPT.md`: Prompt template for AI assistant orchestration.
-*   **[templates/](templates/)**: JSON definitions for concrete workflows.
-    *   `dependency-update.json`: Weekly automated dependency maintenance.
-    *   `bugfix-from-issue.json`: Triggered by `bug-auto` label, requires approval.
-    *   `feature-implementation.json`: Triggered by `@jules implement` comment.
-    *   `security-patch.json`: High-priority auto-fix for security vulnerabilities.
-    *   `documentation-sync.json`: Automated documentation updates on push to main.
-
-## Usage
-
-These templates are designed to be consumed by the `agent.scarmonit.com` orchestrator to spawn Jules instances.
 
 ## Installation
 
 ### Prerequisites
 - Node.js v18+
-- Google Antigravity installed ([download](https://antigravity.google/download))
+- Google Antigravity installed
 - Jules API account with API key
 - GitHub account with connected repositories
 
 ### Setup Steps
 
-1. **Clone Repository**
-```bash
-git clone https://github.com/Scarmonit/antigravity-jules-orchestration.git
-cd antigravity-jules-orchestration
-```
-
-2. **Install Dependencies**
-```bash
-npm install
-```
-
-3. **Configure Environment**
-```bash
-cp .env.example .env
-# Edit .env and add:
-# JULES_API_KEY=your_api_key_here
-# PORT=3323
-# HOST=127.0.0.1
-```
-
-4. **Start MCP Server**
-```bash
-npm run dev
-```
-
-5. **Configure Antigravity**
-- Open Antigravity
-- Navigate to Agent Manager → MCP Servers
-- Add configuration:
-```json
-{
-  "mcpServers": {
-    "jules": {
-      "type": "streamable-http",
-      "url": "http://127.0.0.1:3323/mcp"
-    }
-  }
-}
-```
+1. Clone Repository: git clone https://github.com/Scarmonit/antigravity-jules-orchestration.git
+2. Install Dependencies: npm install
+3. Configure Environment: cp .env.example .env (add JULES_API_KEY)
+4. Start MCP Server: npm run dev
 
 ## Configuration
 
-The application can be configured using the following environment variables:
+| Variable | Description | Default |
+|----------|-------------|---------|
+| PORT | Server port | 3323 |
+| JULES_API_KEY | Jules API key (required) | null |
+| GITHUB_TOKEN | GitHub token for issue integration | null |
+| DATABASE_URL | PostgreSQL connection string | null |
+| SLACK_WEBHOOK_URL | Slack notifications | null |
+| LOG_LEVEL | Logging level | info |
+| ALLOWED_ORIGINS | CORS whitelist | null |
+| SEMANTIC_MEMORY_URL | Semantic memory MCP server URL | null |
 
-| Variable                | Description                                                                 | Default      |
-| ----------------------- | --------------------------------------------------------------------------- | ------------ |
-| `PORT`                  | The port the server will listen on.                                         | `3323`       |
-| `HOST`                  | The host the server will bind to.                                           | `127.0.0.1`  |
-| `JULES_API_KEY`         | Your Jules API key.                                                         | `null`       |
-| `GITHUB_TOKEN`          | Your GitHub token for issue integration.                                    | `null`       |
-| `COMPRESSION_ENABLED`   | Enables gzip/brotli compression for responses.                              | `false`      |
-| `CACHE_ENABLED`         | Enables Redis-based response caching.                                       | `false`      |
-| `CACHE_DEFAULT_TTL`     | The default time-to-live for cached responses in seconds.                   | `300`        |
-| `REDIS_URL`             | The connection URL for the Redis server.                                    | `redis://localhost:6379` |
+## Performance Features
+
+- **LRU Cache**: 100 item capacity with 10s default TTL
+- **Circuit Breaker**: Trips after 5 consecutive failures, 60s reset
+- **Retry Logic**: 3 retries with exponential backoff and jitter
+
+## Deployment
+
+- **Platform**: Render
+- **Branch**: main
+- **Health Check**: /health
+- **Live URL**: https://scarmonit.com
+
+## Development
+
+- Start server: npm run dev
+- Run tests: npm test
+- MCP diagnostics: npm run mcp:diagnostics
 
 ## License
 MIT License
@@ -239,40 +162,3 @@ MIT License
 ## Contact
 - Email: Scarmonit@gmail.com
 - GitHub: [@Scarmonit](https://github.com/Scarmonit)
-
-## 🚀 AI Model Integrations
-
-### Alibaba Cloud Lingma + Qwen
-
-**Status**: ✅ Integrated (December 2025)
-
-The orchestration now includes **Alibaba Cloud Lingma AI Coding Assistant** and **Qwen LLM models** for enhanced development capabilities.
-
-#### Key Features:
-- **IDE-Native Coding**: Lingma VS Code extension (1.9M+ installs, 3.9/5 rating)
-- **Free Tier**: 1,000,000 AI tokens via Model Studio
-- **Models**: Qwen3-Max, Qwen-Plus, Qwen-MT-Plus, and more
-- **ISO 42001 Certified**: Enterprise-grade security
-
-#### Integration Tiers:
-1. **Tier 1 - IDE**: Real-time code completion, Ask/Edit/Agent modes
-2. **Tier 2 - API**: Custom orchestration via Qwen API endpoints
-3. **Tier 3 - Cloud**: ECS instances, Object Storage, Cloud Shell
-
-#### Resources:
-- 📄 [Full Integration Guide](ALIBABA_LINGMA_INTEGRATION.md)
-- 🔗 [Lingma Product Page](https://www.alibabacloud.com/en/product/lingma)
-- 🎯 [Model Studio Console](https://modelstudio.console.alibabacloud.com/)
-- 📦 [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Alibaba-Cloud.tongyi-lingma)
-
-### Multi-Model Strategy
-
-The orchestration uses a hybrid approach:
-- **Lingma/Qwen**: IDE-native completion, multi-file edits, code generation
-- **Claude**: Complex reasoning, architecture design, code review
-- **GPT**: Natural language tasks, documentation, creative problem solving
-- **Jules**: Repository modifications, automated coding sessions
-
-This multi-model approach maximizes strengths while minimizing costs and latency.
-
----
