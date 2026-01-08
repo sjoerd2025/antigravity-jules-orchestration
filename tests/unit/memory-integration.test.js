@@ -64,6 +64,7 @@ function restoreEnv() {
 // =============================================================================
 
 let memoryClient;
+let moduleLoadCounter = 0;
 
 async function loadModule(envOverrides = {}) {
   // Set environment before import
@@ -71,7 +72,8 @@ async function loadModule(envOverrides = {}) {
 
   // Clear module cache for fresh import
   const modulePath = new URL('../../lib/memory-client.js', import.meta.url).href;
-  memoryClient = await import(modulePath + '?t=' + Date.now());
+  moduleLoadCounter++;
+  memoryClient = await import(modulePath + '?c=' + moduleLoadCounter + '&t=' + Date.now());
 }
 
 // =============================================================================
