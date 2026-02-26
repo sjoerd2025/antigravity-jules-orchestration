@@ -2,7 +2,7 @@
   "mcpServers": {
     "temporal-agent": {
       "name": "Temporal Agent MCP Server",
-      "description": "Persistent task scheduling for AI agents - enables scheduled Jules sessions",
+      "description": "Persistent task scheduling for AI agents - enables scheduled Gemini sessions",
       "baseUrl": "${TEMPORAL_AGENT_URL:-http://localhost:3324}",
       "baseUrlProduction": "https://temporal-agent-mcp.onrender.com",
       "protocol": "https",
@@ -39,30 +39,30 @@
         "payloadSanitization": true
       }
     },
-    "jules-orchestration": {
-      "name": "Jules Orchestration MCP Server",
-      "description": "Autonomous AI orchestration server combining Google Antigravity with Jules API",
+    "gemini-orchestration": {
+      "name": "Gemini Orchestration MCP Server",
+      "description": "Autonomous AI orchestration server combining Google Antigravity with Gemini API",
       "baseUrl": "https://scarmonit.com",
       "protocol": "https",
-      "apiVersion": "1.0.0",
+      "apiVersion": "3.0.0",
       "endpoints": {
         "health": "/health",
         "root": "/",
-        "julesCreate": "/api/jules/create",
-        "julesList": "/api/jules/list",
-        "julesStatus": "/api/jules/status/:sessionId"
+        "geminiCreate": "/api/gemini/create",
+        "geminiList": "/api/gemini/list",
+        "geminiStatus": "/api/gemini/status/:sessionId"
       },
       "authentication": {
         "type": "apiKey",
-        "headerName": "X-Jules-API-Key",
-        "envVariable": "JULES_API_KEY"
+        "headerName": "X-Gemini-API-Key",
+        "envVariable": "GEMINI_API_KEY"
       },
       "capabilities": [
         "health-check",
         "service-orchestration",
         "autonomous-execution",
         "mcp-protocol",
-        "jules-session-management",
+        "gemini-session-management",
         "auto-approve-workflows"
       ],
       "deployment": {
@@ -82,19 +82,19 @@
           "enabled": true,
           "mcpProtocol": "1.0",
           "tools": [
-            "jules_create_session",
-            "jules_list_sessions",
-            "jules_get_status",
-            "jules_approve_plan"
+            "gemini_create_session",
+            "gemini_list_sessions",
+            "gemini_get_status",
+            "gemini_approve_plan"
           ]
         },
-        "jules": {
-          "apiBase": "https://jules.googleapis.com/v1alpha",
+        "gemini": {
+          "apiBase": "https://generativelanguage.googleapis.com/v1beta",
           "endpoints": {
-            "sessions": "/sessions",
-            "approve": "/sessions/:id/approve"
+            "generateContent": "/models/{model}:generateContent",
+            "streamGenerateContent": "/models/{model}:streamGenerateContent"
           },
-          "autoApprove": false,
+          "defaultModel": "gemini-2.5-pro",
           "defaultBranch": "main"
         }
       },
@@ -113,8 +113,8 @@
     }
   },
   "tools": {
-    "jules_create_session": {
-      "description": "Create a new Jules coding session for autonomous development",
+    "gemini_create_session": {
+      "description": "Create a new Gemini coding session for autonomous development",
       "parameters": {
         "repository": {
           "type": "string",
@@ -138,12 +138,12 @@
         }
       }
     },
-    "jules_list_sessions": {
-      "description": "List all active Jules sessions",
+    "gemini_list_sessions": {
+      "description": "List all active Gemini sessions",
       "parameters": {}
     },
-    "jules_get_status": {
-      "description": "Get status of a specific Jules session",
+    "gemini_get_status": {
+      "description": "Get status of a specific Gemini session",
       "parameters": {
         "sessionId": {
           "type": "string",

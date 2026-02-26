@@ -85,7 +85,7 @@ function App() {
   return (
     <div className="App">
       <header>
-        <h1>🤖 Jules Orchestrator</h1>
+        <h1>🤖 Gemini Orchestrator</h1>
         <div className="stats">
           <div className="stat">
             <span className="label">Total</span>
@@ -112,21 +112,21 @@ function App() {
           <h2>Quick Actions</h2>
           <div className="action-buttons">
             <button
-              onClick={() => executeWorkflow('dependency-update', { repo_name: 'scarmonit/jules-orchestrator' })}
+              onClick={() => executeWorkflow('dependency-update', { repo_name: 'scarmonit/gemini-orchestrator' })}
               disabled={executingWorkflow === 'dependency-update'}
               aria-label="Update project dependencies"
             >
               {executingWorkflow === 'dependency-update' ? '⏳ Starting...' : '📦 Update Dependencies'}
             </button>
             <button
-              onClick={() => executeWorkflow('documentation-sync', { repo_name: 'scarmonit/jules-orchestrator' })}
+              onClick={() => executeWorkflow('documentation-sync', { repo_name: 'scarmonit/gemini-orchestrator' })}
               disabled={executingWorkflow === 'documentation-sync'}
               aria-label="Synchronize documentation"
             >
               {executingWorkflow === 'documentation-sync' ? '⏳ Syncing...' : '📝 Sync Docs'}
             </button>
             <button
-              onClick={() => executeWorkflow('security-patch', { repo_name: 'scarmonit/jules-orchestrator' })}
+              onClick={() => executeWorkflow('security-patch', { repo_name: 'scarmonit/gemini-orchestrator' })}
               disabled={executingWorkflow === 'security-patch'}
               aria-label="Run security scan"
             >
@@ -193,7 +193,7 @@ function App() {
             <div className="template-card">
               <h3>✨ Feature</h3>
               <p>Implement feature from spec</p>
-              <span className="template-trigger">Trigger: @tools\jules-mcp\dist\client\jules-client.js implement</span>
+              <span className="template-trigger">Trigger: @tools\gemini-mcp\dist\client\gemini-client.js implement</span>
             </div>
             <div className="template-card">
               <h3>📦 Dependencies</h3>

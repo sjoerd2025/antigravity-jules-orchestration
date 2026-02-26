@@ -1,11 +1,11 @@
 {
   "id": "feature-implementation",
   "name": "Feature Implementation",
-  "description": "Activated by `@jules implement` comment, includes pre-deployment to Render staging",
+  "description": "Activated by `@gemini implement` comment, includes pre-deployment to Render staging",
   "trigger": {
     "type": "github_webhook",
     "event": "issue_comment",
-    "pattern": "@jules implement"
+    "pattern": "@gemini implement"
   },
   "task": {
     "repo": "{{repo_name}}",
