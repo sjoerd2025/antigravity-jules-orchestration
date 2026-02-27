@@ -111,7 +111,7 @@ jobs:
       title: ${{ steps.sanitized.outputs.title }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@a7d371cc7e68f270ded0592942424548e05bf1c2 # v0.50.5
+        uses: github/gh-aw/actions/setup@v0.50.5
         with:
           destination: /opt/gh-aw/actions
       - name: Validate COPILOT_GITHUB_TOKEN secret
@@ -334,7 +334,7 @@ jobs:
       output_types: ${{ steps.collect_output.outputs.output_types }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@a7d371cc7e68f270ded0592942424548e05bf1c2 # v0.50.5
+        uses: github/gh-aw/actions/setup@v0.50.5
         with:
           destination: /opt/gh-aw/actions
       - name: Checkout repository
@@ -1432,7 +1432,7 @@ jobs:
       total_count: ${{ steps.missing_tool.outputs.total_count }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@a7d371cc7e68f270ded0592942424548e05bf1c2 # v0.50.5
+        uses: github/gh-aw/actions/setup@v0.50.5
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
@@ -1564,7 +1564,7 @@ jobs:
       matched_command: ${{ steps.check_command_position.outputs.matched_command }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@a7d371cc7e68f270ded0592942424548e05bf1c2 # v0.50.5
+        uses: github/gh-aw/actions/setup@v0.50.5
         with:
           destination: /opt/gh-aw/actions
       - name: Add eyes reaction for immediate feedback
@@ -1615,7 +1615,7 @@ jobs:
       validation_failed_default: ${{ steps.push_repo_memory_default.outputs.validation_failed }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@a7d371cc7e68f270ded0592942424548e05bf1c2 # v0.50.5
+        uses: github/gh-aw/actions/setup@v0.50.5
         with:
           destination: /opt/gh-aw/actions
       - name: Checkout repository
@@ -1691,7 +1691,7 @@ jobs:
       process_safe_outputs_temporary_id_map: ${{ steps.process_safe_outputs.outputs.temporary_id_map }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@a7d371cc7e68f270ded0592942424548e05bf1c2 # v0.50.5
+        uses: github/gh-aw/actions/setup@v0.50.5
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
