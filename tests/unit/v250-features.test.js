@@ -67,23 +67,25 @@ class LRUCache {
  * SessionQueue implementation (copied from index.js for testing)
  */
 class SessionQueue {
-  constructor() {
+  constructor(maxRetained = 100) {
     this.queue = [];
     this.processing = false;
+    this.maxRetained = maxRetained;
   }
 
   add(config, priority = 5) {
+    const id = `queue_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const item = {
-      id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id,
       config,
       priority,
-      status: 'pending',
       addedAt: new Date().toISOString(),
-      sessionId: null
+      status: 'pending'
     };
     this.queue.push(item);
     // Sort by priority (lower number = higher priority)
     this.queue.sort((a, b) => a.priority - b.priority);
+    this._cleanup(); // Clean old completed/failed items
     return item;
   }
 
@@ -115,6 +117,7 @@ class SessionQueue {
       item.sessionId = sessionId;
       item.completedAt = new Date().toISOString();
     }
+    this._cleanup();
     return item;
   }
 
@@ -125,11 +128,23 @@ class SessionQueue {
       item.error = error;
       item.failedAt = new Date().toISOString();
     }
+    this._cleanup();
     return item;
   }
 
   list() {
-    return this.queue;
+    return this.queue.map(i => ({
+      id: i.id,
+      title: i.config.title || 'Untitled',
+      priority: i.priority,
+      status: i.status,
+      addedAt: i.addedAt,
+      sessionId: i.sessionId,
+      startedAt: i.startedAt,
+      completedAt: i.completedAt,
+      failedAt: i.failedAt,
+      error: i.error
+    }));
   }
 
   stats() {
@@ -146,6 +161,17 @@ class SessionQueue {
     const cleared = this.queue.filter(i => i.status === 'pending').length;
     this.queue = this.queue.filter(i => i.status !== 'pending');
     return cleared;
+  }
+
+  // Fix memory leak: remove old completed/failed items, keep only maxRetained
+  _cleanup() {
+    const terminal = this.queue.filter(i => i.status === 'completed' || i.status === 'failed');
+    if (terminal.length > this.maxRetained) {
+      // Sort terminal items by age (oldest first) before slicing
+      terminal.sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt));
+      const toRemoveIds = new Set(terminal.slice(0, terminal.length - this.maxRetained).map(i => i.id));
+      this.queue = this.queue.filter(item => !toRemoveIds.has(item.id));
+    }
   }
 }
 
@@ -349,8 +375,8 @@ describe('v2.5.0 Features - Session Queue', () => {
       const item1 = queue.add({ prompt: 'Task 1' }, 5);
       const item2 = queue.add({ prompt: 'Task 2' }, 5);
 
-      assert.ok(item1.id.startsWith('q_'));
-      assert.ok(item2.id.startsWith('q_'));
+      assert.ok(item1.id.startsWith('queue_'));
+      assert.ok(item2.id.startsWith('queue_'));
       assert.notStrictEqual(item1.id, item2.id);
     });
 
@@ -1013,26 +1039,39 @@ describe('v2.5.0 Features - Template Size Limit', () => {
 });
 
 describe('v2.5.0 Features - Queue Memory Management', () => {
-  it('should limit retained completed/failed items', () => {
-    const maxRetained = 100;
-    const terminalItems = 150;
-    const toRemove = terminalItems - maxRetained;
+  it('should limit retained completed/failed items by age', () => {
+    const queue = new SessionQueue(2);
 
-    assert.strictEqual(toRemove, 50, 'Should remove 50 items to stay within limit');
+    // Add 5 items and complete them
+    const items = [];
+    for (let i = 0; i < 5; i++) {
+      const item = queue.add({ title: `Task ${i}` });
+      // Manually set addedAt to ensure order
+      item.addedAt = new Date(Date.now() - (10 - i) * 1000).toISOString();
+      queue.markComplete(item.id, `session_${i}`);
+      items.push(item);
+    }
+
+    const stats = queue.stats();
+    assert.strictEqual(stats.total, 2, 'Should only retain 2 items');
+
+    const remainingIds = queue.list().map(i => i.id);
+    assert.ok(remainingIds.includes(items[3].id), 'Should contain task 3');
+    assert.ok(remainingIds.includes(items[4].id), 'Should contain task 4');
+    assert.ok(!remainingIds.includes(items[0].id), 'Should not contain task 0 (oldest)');
   });
 
   it('should not remove active items during cleanup', () => {
-    const items = [
-      { status: 'pending' },
-      { status: 'processing' },
-      { status: 'completed' },
-      { status: 'failed' }
-    ];
+    const queue = new SessionQueue(1);
 
-    const terminalItems = items.filter(i => i.status === 'completed' || i.status === 'failed');
-    const activeItems = items.filter(i => i.status === 'pending' || i.status === 'processing');
+    const item1 = queue.add({ title: 'Task 1' });
+    queue.markProcessing(item1.id);
 
-    assert.strictEqual(terminalItems.length, 2);
-    assert.strictEqual(activeItems.length, 2);
+    const item2 = queue.add({ title: 'Task 2' });
+    queue.markComplete(item2.id, 's2');
+
+    const item3 = queue.add({ title: 'Task 3' }); // pending
+
+    assert.strictEqual(queue.stats().total, 3, 'Processing and pending items should not be removed');
   });
 });
