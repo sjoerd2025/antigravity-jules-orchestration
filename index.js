@@ -58,6 +58,7 @@ import validateRequest from './middleware/validateRequest.js';
 import mcpExecuteSchema from './schemas/mcp-execute-schema.js';
 import sessionCreateSchema from './schemas/session-create-schema.js';
 import { cacheMiddleware, invalidateCaches } from './middleware/cacheMiddleware.js';
+import logger from './utils/logger.js';
 
 dotenv.config();
 
@@ -132,12 +133,7 @@ const sessionQueue = new SessionQueue();
 const sessionTemplates = new Map();
 
 // Structured Logging
-const LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3 };
-const currentLogLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'info'];
-function structuredLog(level, message, context = {}) {
-  if (LOG_LEVELS[level] > currentLogLevel) return;
-  console.log(JSON.stringify({ timestamp: new Date().toISOString(), level, message, ...context, correlationId: context.correlationId || 'system' }));
-}
+const systemLogger = logger.child({ correlationId: 'system' });
 
 // Retry with Exponential Backoff
 async function retryWithBackoff(fn, options = {}) {
@@ -150,7 +146,7 @@ async function retryWithBackoff(fn, options = {}) {
       if (error.statusCode && error.statusCode >= 400 && error.statusCode < 500 && error.statusCode !== 429) throw error;
       if (attempt < maxRetries) {
         const delay = Math.min(baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000, maxDelay);
-        structuredLog('warn', `Retry attempt ${attempt}/${maxRetries}`, { correlationId, delay: Math.round(delay), error: error.message });
+        systemLogger.warn(`Retry attempt ${attempt}/${maxRetries}`, { correlationId, delay: Math.round(delay), error: error.message });
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -372,7 +368,7 @@ app.get('/api/sessions/:id/timeline', async (req, res) => {
 
 // Render webhook for build failure auto-fix
 app.post('/webhooks/render', async (req, res) => {
-  console.log('[Webhook] Received Render webhook');
+  systemLogger.info('[Webhook] Received Render webhook');
 
   try {
     const result = await handleRenderWebhook(
@@ -383,7 +379,7 @@ app.post('/webhooks/render', async (req, res) => {
 
     res.status(result.status || 200).json(result);
   } catch (error) {
-    console.error('[Webhook] Error:', error.message);
+    systemLogger.error('[Webhook] Error', { error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -827,14 +823,14 @@ app.post('/mcp/execute', validateRequest(mcpExecuteSchema), async (req, res) => 
     return res.status(400).json({ error: 'Unknown tool: ' + tool });
   }
 
-  console.log('[MCP] Executing tool:', tool, parameters);
+  systemLogger.info('[MCP] Executing tool', { tool, parameters });
 
   try {
     const result = await handler(parameters);
-    console.log('[MCP] Tool', tool, 'completed successfully');
+    systemLogger.info('[MCP] Tool completed successfully', { tool });
     res.json({ success: true, result });
   } catch (error) {
-    console.error('[MCP] Tool', tool, 'failed:', error.message);
+    systemLogger.error('[MCP] Tool failed', { tool, error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -849,7 +845,7 @@ app.post('/mcp/execute', validateRequest(mcpExecuteSchema), async (req, res) => 
 async function createSessionFromIssue(params) {
   const { owner, repo, issueNumber, autoApprove = false, automationMode = 'AUTO_CREATE_PR' } = params;
 
-  console.log(`[GitHub] Fetching issue #${issueNumber} from ${owner}/${repo}`);
+  systemLogger.info('[GitHub] Fetching issue', { owner, repo, issueNumber });
 
   // Fetch issue with context
   const issue = await getIssue(owner, repo, issueNumber, GITHUB_TOKEN);
@@ -868,11 +864,11 @@ async function createSessionFromIssue(params) {
 
   // Auto-approve if requested and session is in planning
   if (autoApprove && session.id) {
-    console.log('[Gemini] Auto-approving plan...');
+    systemLogger.info('[Gemini] Auto-approving plan');
     try {
       await approveGeminiPlan(session.id);
     } catch (e) {
-      console.log('[Gemini] Could not auto-approve (may not be ready yet):', e.message);
+      systemLogger.warn('[Gemini] Could not auto-approve', { error: e.message });
     }
   }
 
@@ -890,7 +886,7 @@ async function createSessionFromIssue(params) {
 async function createSessionsFromLabel(params) {
   const { owner, repo, label, autoApprove = false, parallel = 3 } = params;
 
-  console.log(`[GitHub] Fetching issues with label "${label}" from ${owner}/${repo}`);
+  systemLogger.info('[GitHub] Fetching issues with label', { owner, repo, label });
 
   // Fetch all issues with label
   const issues = await getIssuesByLabel(owner, repo, label, GITHUB_TOKEN);
@@ -899,7 +895,7 @@ async function createSessionsFromLabel(params) {
     return { message: 'No issues found with label: ' + label, sessions: [] };
   }
 
-  console.log(`[GitHub] Found ${issues.length} issues, creating sessions...`);
+  systemLogger.info('[GitHub] Creating sessions from issues', { count: issues.length });
 
   // Create tasks for batch processor
   const tasks = issues.map(issue => ({
@@ -924,7 +920,7 @@ async function createSessionsFromLabel(params) {
 
 // Session Management
 async function cancelSession(sessionId) {
-  structuredLog('info', 'Cancelling session', { sessionId });
+  systemLogger.info('Cancelling session', { sessionId });
   apiCache.invalidate(sessionId);
   sessionManager.updateStatus(sessionId, 'cancelled');
   const result = { success: true, sessionId, status: 'cancelled' };
@@ -934,7 +930,7 @@ async function cancelSession(sessionId) {
 }
 
 async function retrySession(sessionId, modifiedPrompt = null) {
-  structuredLog('info', 'Retrying session', { sessionId });
+  systemLogger.info('Retrying session', { sessionId });
   const original = sessionManager.get(sessionId);
   if (!original) throw new Error(`Session ${sessionId} not found`);
   const newSession = await createGeminiSession({
@@ -1084,9 +1080,9 @@ async function mergePr(owner, repo, prNumber, mergeMethod = 'squash') {
                 'completed',
                 { prUrl: `https://github.com/${owner}/${repo}/pull/${prNumber}`, merged: true }
               );
-              structuredLog('info', 'Stored PR merge in semantic memory', { owner, repo, prNumber });
+              systemLogger.info('Stored PR merge in semantic memory', { owner, repo, prNumber });
             } catch (err) {
-              structuredLog('warn', 'Failed to store PR merge in memory', { error: err.message });
+              systemLogger.warn('Failed to store PR merge in memory', { error: err.message });
             }
           }
           resolve({ success: true, merged: true, prNumber });
@@ -1225,7 +1221,7 @@ async function getAnalytics(days = 7) {
 // Global error handler - catches all unhandled errors
 app.use((err, req, res, next) => {
   const requestId = req.requestId || 'unknown';
-  console.error(`[ERROR][${requestId}] ${err.message}`, err.stack);
+  systemLogger.error(`[ERROR][${requestId}] ${err.message}`, { stack: err.stack, requestId });
 
   const statusCode = err.statusCode || err.status || 500;
   res.status(statusCode).json({
@@ -1286,15 +1282,15 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
 });
 
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully');
+  systemLogger.info('SIGTERM received, shutting down gracefully');
   await closeDb();
   server.close(() => process.exit(0));
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err);
+  systemLogger.error('Uncaught exception', { error: err.message, stack: err.stack });
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled rejection at:', promise, 'reason:', reason);
+  systemLogger.error('Unhandled rejection', { reason: reason?.message || reason, stack: reason?.stack });
 });
