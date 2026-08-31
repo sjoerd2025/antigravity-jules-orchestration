@@ -75,7 +75,7 @@ function App() {
   return (
     <div className="App">
       <header>
-        <h1>🤖 Jules Orchestrator</h1>
+        <h1>🤖 Gemini Orchestrator</h1>
         <div className="stats">
           <div className="stat">
             <span className="label">Total</span>
@@ -100,13 +100,13 @@ function App() {
         <section className="quick-actions">
           <h2>Quick Actions</h2>
           <div className="action-buttons">
-            <button onClick={() => executeWorkflow('dependency-update', { repo_name: 'scarmonit/jules-orchestrator' })}>
+            <button onClick={() => executeWorkflow('dependency-update', { repo_name: 'scarmonit/gemini-orchestrator' })}>
               📦 Update Dependencies
             </button>
-            <button onClick={() => executeWorkflow('documentation-sync', { repo_name: 'scarmonit/jules-orchestrator' })}>
+            <button onClick={() => executeWorkflow('documentation-sync', { repo_name: 'scarmonit/gemini-orchestrator' })}>
               📝 Sync Docs
             </button>
-            <button onClick={() => executeWorkflow('security-patch', { repo_name: 'scarmonit/jules-orchestrator' })}>
+            <button onClick={() => executeWorkflow('security-patch', { repo_name: 'scarmonit/gemini-orchestrator' })}>
               🔒 Security Scan
             </button>
           </div>
@@ -170,7 +170,7 @@ function App() {
             <div className="template-card">
               <h3>✨ Feature</h3>
               <p>Implement feature from spec</p>
-              <span className="template-trigger">Trigger: @tools\jules-mcp\dist\client\jules-client.js implement</span>
+              <span className="template-trigger">Trigger: @tools\gemini-mcp\dist\client\gemini-client.js implement</span>
             </div>
             <div className="template-card">
               <h3>📦 Dependencies</h3>
