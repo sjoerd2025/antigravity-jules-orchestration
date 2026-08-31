@@ -17,7 +17,7 @@
     "safety_checks": ["tests_pass", "no_new_warnings"]
   },
   "post_actions": [
-    {"type": "github_comment", "message": "Jules has created a fix PR. Plan: {{plan_summary}}"},
+    {"type": "github_comment", "message": "Gemini has created a fix PR. Plan: {{plan_summary}}"},
     {"type": "link_issue", "issue_number": "{{trigger_issue_number}}"}
   ]
 }
