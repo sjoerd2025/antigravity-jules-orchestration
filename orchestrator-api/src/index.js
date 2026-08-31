@@ -28,7 +28,7 @@ app.use(express.json({
 }));
 
 // Config
-const JULES_API_KEY = process.env.JULES_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -71,9 +71,9 @@ app.get('/api/v1/metrics', async (req, res) => {
   res.end(await metrics.getMetrics());
 });
 
-// Jules API client (Simple Auth for Stability)
-const julesClient = axios.create({
-  baseURL: 'https://jules.googleapis.com/v1alpha',
+// Gemini API client
+const geminiClient = axios.create({
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta',
   timeout: 30000, // 30 second timeout to prevent hung requests
   headers: {
     'Content-Type': 'application/json'
@@ -81,11 +81,11 @@ const julesClient = axios.create({
 });
 
 // Add auth interceptor
-julesClient.interceptors.request.use((config) => {
-  if (JULES_API_KEY) {
-    config.headers.Authorization = 'Bearer ' + JULES_API_KEY;
+geminiClient.interceptors.request.use((config) => {
+  if (GEMINI_API_KEY) {
+    config.headers['x-goog-api-key'] = GEMINI_API_KEY;
   }
-  console.log('[Jules Client] Requesting ' + config.url);
+  console.log('[Gemini Client] Requesting ' + config.url);
   return config;
 });
 
@@ -108,8 +108,8 @@ githubClient.interceptors.request.use((config) => {
 app.get('/', (req, res) => {
   res.json({
     status: 'healthy',
-    service: 'Jules MCP Server',
-    version: '1.5.0',
+    service: 'Gemini MCP Server',
+    version: '3.0.0',
     deployedBy: 'Gemini-Final',
     capabilities: ['sessions', 'tasks', 'orchestration', 'mcp-protocol'],
     timestamp: new Date().toISOString()
@@ -120,10 +120,10 @@ app.get('/', (req, res) => {
 app.get(['/health', '/api/v1/health'], async (req, res) => {
   res.json({ 
     status: 'ok',
-    version: '1.5.0',
+    version: '3.0.0',
     services: {
       database: db ? 'configured' : 'optional',
-      julesApi: 'configured',
+      geminiApi: GEMINI_API_KEY ? 'configured' : 'not_configured',
       githubApi: GITHUB_TOKEN ? 'configured' : 'not_configured'
     },
     timestamp: new Date().toISOString() 
@@ -135,8 +135,8 @@ app.get('/mcp/tools', (req, res) => {
   res.json({
     tools: [
       {
-        name: "jules_create_session",
-        description: "Create a new Jules coding session",
+        name: "gemini_create_session",
+        description: "Create a new Gemini coding session",
         inputSchema: {
           type: "object",
           properties: {
@@ -147,8 +147,8 @@ app.get('/mcp/tools', (req, res) => {
         }
       },
       {
-        name: "jules_list_sessions",
-        description: "List active Jules sessions",
+        name: "gemini_list_sessions",
+        description: "List active Gemini sessions",
         inputSchema: {
           type: "object",
           properties: {
@@ -157,7 +157,7 @@ app.get('/mcp/tools', (req, res) => {
         }
       },
       {
-        name: "jules_get_session",
+        name: "gemini_get_session",
         description: "Get details of a specific session",
         inputSchema: {
           type: "object",
@@ -203,14 +203,14 @@ app.post('/mcp/execute', async (req, res) => {
   
   try {
     let result;
-    if (toolName === 'jules_create_session') {
-      const response = await julesClient.post('/sessions', toolArgs);
+    if (toolName === 'gemini_create_session') {
+      const response = await geminiClient.post('/sessions', toolArgs);
       result = response.data;
-    } else if (toolName === 'jules_list_sessions') {
-      const response = await julesClient.get('/sessions');
+    } else if (toolName === 'gemini_list_sessions') {
+      const response = await geminiClient.get('/sessions');
       result = response.data;
-    } else if (toolName === 'jules_get_session') {
-      const response = await julesClient.get('/sessions/' + toolArgs.sessionId);
+    } else if (toolName === 'gemini_get_session') {
+      const response = await geminiClient.get('/sessions/' + toolArgs.sessionId);
       result = response.data;
     } else {
       return res.status(404).json({ error: 'Tool ' + toolName + ' not found' });
@@ -310,6 +310,6 @@ app.post('/api/v1/webhooks/github', async (req, res) => {
 
 // Start server
 server.listen(PORT, () => {
-  console.log('Jules Orchestrator API running on port ' + PORT);
-  console.log('Version: 1.5.0');
+  console.log('Gemini Orchestrator API running on port ' + PORT);
+  console.log('Version: 3.0.0');
 });
