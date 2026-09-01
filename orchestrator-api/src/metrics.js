@@ -24,7 +24,7 @@ export const workflowDuration = new client.Histogram({
 
 export const julesTaskCounter = new client.Counter({
   name: 'jules_tasks_total',
-  help: 'Total Jules tasks created',
+  help: 'Total Gemini tasks created',
   labelNames: ['status'],
   registers: [register]
 });
